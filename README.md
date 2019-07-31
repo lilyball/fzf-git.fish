@@ -7,6 +7,7 @@
 * **ctrl-g r**: Shows an `fzf` picker for remote git branches.
 * **ctrl-g c**: Shows an `fzf` picker for git commits, along with a preview of the selected commit.
   With this picker, **ctrl-t** toggles the preview pane.
+* **ctrl-g s**: Shows an `fzf` picker for git short status.
 
 All bindings support picking multiple results and support **ctrl-r** to toggle sorting on/off. The
 token that the cursor is on when the binding is invoked will be used as the default `fzf` query and

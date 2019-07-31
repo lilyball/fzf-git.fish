@@ -10,10 +10,12 @@ bind \cgt '__fzf-git-refs_binding refs/tags'
 bind \cgb '__fzf-git-refs_binding refs/heads'
 bind \cgr '__fzf-git-refs_binding refs/remotes'
 bind \cgc __fzf-git-commits_binding
+bind \cgs __fzf-git-status_binding
 bind -M insert \cgt '__fzf-git-refs_binding refs/tags'
 bind -M insert \cgb '__fzf-git-refs_binding refs/heads'
 bind -M insert \cgr '__fzf-git-refs_binding refs/remotes'
 bind -M insert \cgc __fzf-git-commits_binding
+bind -M insert \cgs __fzf-git-status_binding
 
 function fzf-git-tags -d "List git tags"
   fzf-git-refs refs/tags
@@ -43,7 +45,7 @@ function __fzf-git-refs
 end
 
 function __fzf-git-refs_binding
-  set -l curtok (commandline -to)
+  set -l curtok (commandline -to | string split0)
   set -l result (__fzf-git-refs "$curtok" $argv)
   and commandline -rt -- (string escape $result | string join ' ')' '
   commandline -a '' # faster than repaint as it doesn't regenerate the prompt
@@ -60,14 +62,37 @@ function __fzf-git-commits
   if [ -n "$curtok" ]; set curtok -q "$curtok"; else; set curtok; end
   set -lxp FZF_DEFAULT_OPTS --reverse
   set -l result (git log --color=always --oneline $argv |
-                  __fzf-git_run --ansi --no-sort -m $curtok --preview 'git show --color=always {+1}' --bind=ctrl-t:toggle-preview)
+                 __fzf-git_run --ansi --no-sort -m $curtok --preview 'git show --color=always {+1}' --bind=ctrl-t:toggle-preview)
   and printf '%s\n' $result | cut -d ' ' -f 1
 end
 
 function __fzf-git-commits_binding
-  set -l curtok (commandline -to)
+  set -l curtok (commandline -to | string split0)
   set -l result (__fzf-git-commits "$curtok")
   and commandline -rt -- (string escape $result | string join ' ')' '
+  # repaint in case FZF_DEFAULT_OPTS includes --height
+  commandline -a '' # faster than repaint as it doesn't regenerate the prompt
+end
+
+function __fzf-git-status
+  __fzf-git_is_in_repo; or return
+  set -l curtok $argv[1]
+  set -e argv[1]
+  if [ -n "$curtok" ]; set curtok -q "$curtok"; else; set curtok; end
+  set -q FZF_TMUX_HEIGHT; or set FZF_TMUX_HEIGHT 40% # for FZF_DEFAULT_OPTS
+  set -lxp FZF_DEFAULT_OPTS "--height $FZF_TMUX_HEIGHT" --reverse
+  set -l result (git -c color.status=always status -s -- $argv |
+                 __fzf-git_run --ansi -m $curtok)
+  or return
+  string sub -s 4 $result | string split ' -> '
+  true # ignore return value of string manipulation
+end
+
+function __fzf-git-status_binding
+  set -l curtok (commandline -to | string split0)
+  set -l result (__fzf-git-status "$curtok")
+  # don't run string escape, the status is already escaped by git
+  and commandline -rt -- (string join ' ' $result)' '
   # repaint in case FZF_DEFAULT_OPTS includes --height
   commandline -a '' # faster than repaint as it doesn't regenerate the prompt
 end
