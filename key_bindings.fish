@@ -84,14 +84,21 @@ function __fzf-git-status
   set -l result (git -c color.status=always status -s -- $argv |
                  __fzf-git_run --ansi -m $curtok)
   or return
-  string sub -s 4 $result | string split ' -> '
-  true # ignore return value of string manipulation
+  for entry in (string sub -s 4 $result)
+    if set -l name (string match -r '^"(?:[^\\\\"]|\\\\.)*"' -- $entry)
+      # this is already suitably escaped
+      echo -- $name
+    else
+      string escape -- (string split -m 1 -- '->' $entry)[1]
+    end
+  end
+  true
 end
 
 function __fzf-git-status_binding
   set -l curtok (commandline -to | string split0)
   set -l result (__fzf-git-status "$curtok")
-  # don't run string escape, the status is already escaped by git
+  # don't run string escape, the status is already escaped
   and commandline -rt -- (string join ' ' $result)' '
   # repaint in case FZF_DEFAULT_OPTS includes --height
   commandline -a '' # faster than repaint as it doesn't regenerate the prompt
