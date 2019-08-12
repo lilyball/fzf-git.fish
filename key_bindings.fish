@@ -45,7 +45,7 @@ function __fzf-git-refs
 end
 
 function __fzf-git-refs_binding
-  set -l curtok (commandline -to | string split0)
+  set -l curtok (__fzf-git_commandline_token)
   set -l result (__fzf-git-refs "$curtok" $argv)
   and commandline -rt -- (string escape $result | string join ' ')' '
   commandline -a '' # faster than repaint as it doesn't regenerate the prompt
@@ -67,7 +67,7 @@ function __fzf-git-commits
 end
 
 function __fzf-git-commits_binding
-  set -l curtok (commandline -to | string split0)
+  set -l curtok (__fzf-git_commandline_token)
   set -l result (__fzf-git-commits "$curtok")
   and commandline -rt -- (string escape $result | string join ' ')' '
   # repaint in case FZF_DEFAULT_OPTS includes --height
@@ -96,7 +96,7 @@ function __fzf-git-status
 end
 
 function __fzf-git-status_binding
-  set -l curtok (commandline -to | string split0)
+  set -l curtok (__fzf-git_commandline_token)
   set -l result (__fzf-git-status "$curtok")
   # don't run string escape, the status is already escaped
   and commandline -rt -- (string join ' ' $result)' '
@@ -114,6 +114,14 @@ function __fzf-git_run --description "Runs fzf or fzf-tmux with the given argume
   else
     fzf --bind=(string join , $binds) $argv
   end
+end
+
+function __fzf-git_commandline_token --description "Returns the current commandline token"
+  # This replaces newlines in the token with spaces, since that's what fzf will do anyway.
+  # TODO: Switch to `string collect` once it's been released. Ideally we wouldn't replace interior
+  # newlines with spaces, but right now there's no good way of preserving interior newlines without
+  # also getting the trailing newline, as the string manipulation commands love to include that.
+  commandline -to | string join ' '
 end
 
 function __fzf-git_is_in_repo --description "Checks to make sure we're in a git repo"
