@@ -85,11 +85,19 @@ function __fzf-git-status
                  __fzf-git_run --ansi -m $curtok)
   or return
   for entry in (string sub -s 4 $result)
-    if set -l name (string match -r '^"(?:[^\\\\"]|\\\\.)*"' -- $entry)
-      # this is already suitably escaped
-      echo -- $name
-    else
-      string escape -- (string split -m 1 -- '->' $entry)[1]
+    # Check for the output that we expect.
+    set -l names (string match -r '^("(?>\\\\.|[^"])*"|\S*)(?: -> ("(?>\\\\.|[^"])*"|\S*))?$' -- $entry)[2..]
+    or begin
+      # It failed? That's weird. Try to hack around it anyway.
+      set names (string split -m 1 -- ' -> ' $entry)
+    end
+    for name in $names
+      if string match -q '"*"' -- $name
+        # this is already suitably escaped
+        echo -- $name
+      else
+        string escape -- $name
+      end
     end
   end
   true
